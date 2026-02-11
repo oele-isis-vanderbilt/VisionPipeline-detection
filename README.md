@@ -1,272 +1,151 @@
-# detect
+⸻
 
-A modular **video object detection** toolkit with a clean **det-v1** JSON schema, pluggable backends, and optional model export.
+detect
+
+A modular video object detection toolkit with a clean det-v1 JSON schema, pluggable backends, and optional model export.
 
 Current backend:
+	•	Ultralytics YOLO (bbox / pose / segmentation)
 
-- **Ultralytics YOLO** (bbox / pose / segmentation)
+Architecture highlights:
+	•	backend/plugin registry (detect.backends)
+	•	model registry + weight resolver (detect.registry)
+	•	stable det-v1 schema (detect.core.schema)
+	•	optional exporters (today: Ultralytics export)
 
-Future-friendly design:
+By default, detect does not write any files. You opt-in to saving JSON, frames, or annotated video via flags.
 
-- backend/plugin registry (`detect.backends`)
-- model registry + weight resolver (`detect.registry`)
-- stable det-v1 schema (`detect.core.schema`)
-- optional exporters (today: Ultralytics export)
+⸻
 
-> By default, `detect` **does not write any files**. You opt-in to saving JSON, frames, or annotated video via flags.
+Features
+	•	Detect videos → det-v1 JSON (always returned in-memory; optionally saved)
+	•	Optional artifacts
+	•	--json → save detections.json
+	•	--frames → save extracted frames
+	•	--save-video <name.mp4> → save annotated video
+	•	YOLO tasks
+	•	yolo_bbox (boxes)
+	•	yolo_pose (boxes + keypoints)
+	•	yolo_seg (boxes + polygons)
+	•	Model registry keys
+	•	pass --weights yolo26n / yolo26n-seg / yolo26n-pose (or a local path / URL)
+	•	Exports
+	•	export to formats like onnx, engine, tflite, openvino, coreml, etc (depending on toolchain)
 
----
+⸻
 
-## Features
+Recommended environment (Python 3.11+)
 
-- **Detect videos → det-v1 JSON** (returned in-memory, optionally saved)
-- **Optional artifacts**
-  - `--json` → save `detections.json`
-  - `--frames` → save extracted frames
-  - `--save-video <name.mp4>` → save annotated video
-- **Supports YOLO tasks**
-  - `yolo_bbox` (boxes)
-  - `yolo_pose` (boxes + keypoints)
-  - `yolo_seg` (boxes + polygons)
-- **Model registry keys**
-  - pass `--weights yolo26n` / `yolo26n-seg` / etc (or a local path / URL)
-- **Model export**
-  - export to formats like `onnx`, `engine`, `tflite`, etc (depending on platform/toolchain)
+This project targets Python 3.11+.
 
----
+⸻
 
-## Recommended environment (Python 3.11)
+Install with pip (PyPI)
 
-This project targets **Python 3.11+**.
+Use this if you want to install and use the tool without cloning the repo.
 
-Why:
+Install (base detection)
 
-- avoids wheel availability issues for exporters (e.g. `onnxruntime`)
-- works well with modern `torch` / `ultralytics`
+pip install detect
 
----
+Optional installs (pip extras)
 
-## Install from GitHub (uv)
+Export helpers (ONNX + ONNXRuntime):
 
-Install `uv` using Astral’s installer:
+pip install "detect[export]"
 
-https://docs.astral.sh/uv/getting-started/installation/#standalone-installer
+TensorFlow export paths (heavy):
 
-Verify:
+pip install "detect[tf]"
 
-```bash
-uv --version
-```
+OpenVINO export:
 
-Clone + install base deps:
+pip install "detect[openvino]"
 
-```bash
-git clone <YOUR_REPO_URL>.git
-cd detect
-uv sync
-```
+CoreML export (macOS):
 
-> `uv sync` installs only the base dependencies (detection). Export extras are opt-in.
+pip install "detect[coreml]"
 
----
 
-## Optional dependencies (exports & runtimes)
+⸻
 
-Your `pyproject.toml` defines extras:
+CLI usage (pip)
 
-- `export`: ONNX + ONNXRuntime
-- `tf`: TensorFlow export paths (heavy)
-- `openvino`: OpenVINO export
-- `coreml`: CoreML export (macOS)
+When installed with pip, run modules directly:
 
-Install extras like:
+Global help
 
-```bash
-uv sync --extra export
-uv sync --extra tf
-uv sync --extra openvino
-uv sync --extra coreml
-```
+python -m detect.cli.detect_video -h
+python -m detect.cli.export_model -h
 
-You can combine them:
+List detectors
 
-```bash
-uv sync --extra export --extra openvino
-```
+python -c "import detect; print(detect.available_detectors())"
 
-### Torch notes (CPU / CUDA / Apple Silicon)
+List models (registry + installed)
 
-Ultralytics uses **PyTorch**. On some platforms you may want to install torch separately depending on acceleration:
+python -m detect.cli.detect_video --list-models
+python -m detect.cli.export_model --list-models
 
-- **Apple Silicon (MPS)**: regular pip/uv torch installs usually work.
-- **CUDA**: install torch using the official PyTorch selector for your CUDA version, then run `uv sync` for the rest.
 
----
+⸻
 
-## CLI usage (uv)
+Detection CLI (pip)
 
-Run CLIs using `uv run` so you’re always using the project environment:
+In-memory only (default; saves nothing):
 
-### Global help
-
-```bash
-uv run python -m detect.cli.detect_video -h
-uv run python -m detect.cli.export_model -h
-```
-
-### List detectors
-
-```bash
-uv run python -c "import detect; print(detect.available_detectors())"
-```
-
-### List models (registry + installed)
-
-```bash
-uv run python -m detect.cli.detect_video --list-models
-uv run python -m detect.cli.export_model --list-models
-```
-
----
-
-## Detection CLI
-
-Module:
-
-```bash
-uv run python -m detect.cli.detect_video ...
-```
-
-### Arguments
-
-**Required**
-
-- `--video <path>`: input video path
-- `--detector <name>`: one of `yolo_bbox | yolo_pose | yolo_seg`
-- `--weights <id>`: weights identifier
-  - registry key (e.g. `yolo26n`, `yolo26n-seg`, `yolo26n-pose`)
-  - OR local path (e.g. `models/yolo26n.pt`)
-  - OR URL (downloaded into `models/` if downloads enabled)
-
-**Common optional**
-
-- `--classes <ids>`: comma/semicolon-separated class ids (e.g. `"0,2"`). If omitted, all classes.
-- `--conf-thresh <float>`: confidence threshold (default: `0.25`)
-- `--imgsz <int>`: inference image size (default: `640`)
-- `--device <str>`: device selection
-  - `auto` (default; mapped to `mps`/GPU/`cpu` depending on availability)
-  - `cpu`, `mps`, `0`, `0,1`, etc.
-- `--half`: enable FP16 inference where supported
-
-**Artifacts (opt-in)**
-
-- `--json`: save `detections.json`
-- `--frames`: save extracted frames as images
-- `--save-video <name.mp4>`: save annotated video under the run directory
-- `--display`: show a live window (press `q` to quit)
-
-**Output control**
-
-- `--out-dir <dir>`: root output directory (only used if saving artifacts; default: `out`)
-- `--run-name <name>`: run folder name inside `out-dir` (if omitted, derived from video + detector)
-
-**Model registry / downloads**
-
-- `--models-dir <dir>`: where models are stored/downloaded (default: `models`)
-- `--no-download`: disable automatic download for registry keys/URLs
-
-**Misc**
-
-- `--no-progress`: disable tqdm progress bar
-- `--list-models`: print registry + installed models then exit
-
-### Examples
-
-#### In-memory only (default; saves nothing)
-
-```bash
-uv run python -m detect.cli.detect_video \
+python -m detect.cli.detect_video \
   --video <in.mp4> \
   --detector yolo_bbox \
   --weights yolo26n
-```
 
-- Prints det-v1 JSON to stdout
-- Does **not** create `out/` unless you save artifacts
+Save JSON + frames + annotated video (example):
 
-#### Save JSON only
-
-```bash
-uv run python -m detect.cli.detect_video \
-  --video <in.mp4> \
-  --detector yolo_bbox \
-  --weights yolo26n \
-  --json \
-  --out-dir out --run-name run_json
-```
-
-#### Save JSON + frames
-
-```bash
-uv run python -m detect.cli.detect_video \
-  --video <in.mp4> \
-  --detector yolo_bbox \
-  --weights yolo26n \
-  --json --frames \
-  --out-dir out --run-name run_frames
-```
-
-#### Save annotated video (segmentation example)
-
-```bash
-uv run python -m detect.cli.detect_video \
+python -m detect.cli.detect_video \
   --video <in.mp4> \
   --detector yolo_seg \
   --weights yolo26n-seg \
+  --json --frames \
   --save-video annotated.mp4 \
   --out-dir out --run-name run_seg
-```
 
-#### Live display (press `q` to quit)
 
-```bash
-uv run python -m detect.cli.detect_video \
-  --video <in.mp4> \
-  --detector yolo_pose \
-  --weights yolo26n-pose \
-  --display
-```
+⸻
 
----
+Export CLI (pip)
 
-## det-v1 JSON schema (stable)
+Requires export extras: pip install "detect[export]"
 
-The tool outputs a canonical JSON schema (`schema_version: "det-v1"`):
+Export ONNX:
 
-- `video`: source metadata (fps, size, frame_count, path)
-- `detector`: settings (name, backend, weights, conf/imgsz/device, etc.)
-- `frames`: list of per-frame detections
-  - bbox: `[x1, y1, x2, y2]`
-  - pose: `keypoints = [[x, y, score], ...]`
-  - seg: `segments = list of polygons [[[x, y], ...], ...]`
+python -m detect.cli.export_model \
+  --weights yolo26n \
+  --formats onnx \
+  --out-dir models/exports --run-name y26_onnx
 
-This schema is defined in `detect/core/schema.py`.
+Validate ONNX:
 
----
+python -c "import onnx; m=onnx.load('models/exports/y26_onnx/yolo26n.onnx'); onnx.checker.check_model(m); print('ONNX OK')"
 
-## Python usage (import)
+Confirm ONNXRuntime loads:
 
-### Quick sanity check
+python -c "import onnxruntime as ort; print('onnxruntime', ort.__version__)"
 
-```bash
-uv run python -c "import detect; print(detect.available_detectors())"
-```
 
-### Run detection in code (returns payload + paths)
+⸻
 
-Create `run_detect.py`:
+Python usage (import)
 
-```python
+After installing with pip install detect, you can use it in code.
+
+Quick sanity check
+
+python -c "import detect; print(detect.available_detectors())"
+
+Run detection from a Python file
+
+Create run_detect.py:
+
 from detect.core.run import detect_video
 from detect.core.artifacts import ArtifactOptions
 
@@ -281,150 +160,201 @@ res = detect_video(
     ),
 )
 
-# det-v1 payload always available in memory:
 payload = res.payload
 print(payload["schema_version"], len(payload["frames"]))
-
-# If you enabled saving, paths would show up here:
-print(res.paths)
-```
+print(res.paths)  # populated only if you enable saving artifacts
 
 Run:
 
-```bash
-uv run python run_detect.py
-```
+python run_detect.py
 
----
 
-## Export CLI
+⸻
 
-Module:
+Install from GitHub (uv)
 
-```bash
-uv run python -m detect.cli.export_model ...
-```
+Use this if you are developing locally or want reproducible project environments.
 
-> Export support depends on format + your platform/toolchain. Start with **ONNX**.
+Repo:
+	•	https://github.com/Surya-Rayala/VideoPipeline-detection.git
 
-### Install export extras
+Install uv:
+https://docs.astral.sh/uv/getting-started/installation/#standalone-installer
 
-```bash
+Verify:
+
+uv --version
+
+Clone + install deps:
+
+git clone https://github.com/Surya-Rayala/VideoPipeline-detection.git
+cd VideoPipeline-detection
+uv sync
+
+Optional installs (uv extras)
+
 uv sync --extra export
-```
+uv sync --extra tf
+uv sync --extra openvino
+uv sync --extra coreml
 
-### Arguments
 
-**Required**
+⸻
 
-- `--weights <id>`: weights path/URL/registry key (e.g. `yolo26n`)
+CLI usage (uv)
 
-**Common optional**
+When running from the repo with uv, use uv run:
 
-- `--formats <list>`: comma/semicolon-separated formats (default: `onnx`)
-  - examples: `onnx`, `engine`, `tflite`, `openvino`, `coreml`, ...
-- `--imgsz <int | H,W>`: export image size (default: `640`)
-- `--device <str>`: export device (commonly `cpu`, `mps`, `0`)
-- `--half`: enable FP16 export where supported
-- `--int8`: enable INT8 export (usually requires `--data`)
-- `--data <yaml>`: dataset YAML for INT8 calibration (format-dependent)
-- `--fraction <float>`: fraction of dataset used for calibration (default: `1.0`)
-- `--dynamic`: enable dynamic shapes where supported
-- `--batch <int>`: export batch size (default: `1`)
-- `--opset <int>`: ONNX opset version
-- `--simplify`: simplify ONNX graph
-- `--workspace <int>`: TensorRT workspace (GB)
-- `--nms`: add NMS in exported model (format-dependent)
+Global help
 
-**Output control**
+uv run python -m detect.cli.detect_video -h
+uv run python -m detect.cli.export_model -h
 
-- `--out-dir <dir>`: output root for exports (default: `models/exports`)
-- `--run-name <name>`: folder name under out-dir (default derived from weights)
+List detectors
 
-**Model registry / downloads**
+uv run python -c "import detect; print(detect.available_detectors())"
 
-- `--models-dir <dir>`: where models are stored/downloaded (default: `models`)
-- `--no-download`: disable automatic download for registry keys/URLs
+List models (registry + installed)
 
-**Misc**
+uv run python -m detect.cli.detect_video --list-models
+uv run python -m detect.cli.export_model --list-models
 
-- `--list-models`: print registry + installed models then exit
 
-### Examples
+⸻
 
-#### Export ONNX
+Detection CLI (uv)
 
-```bash
+In-memory only (default; saves nothing):
+
+uv run python -m detect.cli.detect_video \
+  --video <in.mp4> \
+  --detector yolo_bbox \
+  --weights yolo26n
+
+Save JSON only:
+
+uv run python -m detect.cli.detect_video \
+  --video <in.mp4> \
+  --detector yolo_bbox \
+  --weights yolo26n \
+  --json \
+  --out-dir out --run-name run_json
+
+
+⸻
+
+Export CLI (uv)
+
+Requires: uv sync --extra export
+
+Export ONNX:
+
 uv run python -m detect.cli.export_model \
   --weights yolo26n \
   --formats onnx \
   --out-dir models/exports --run-name y26_onnx
-```
 
-#### Validate ONNX + run a minimal ONNXRuntime session
+Validate ONNX:
 
-```bash
-# 1) Check file integrity
 uv run python -c "import onnx; m=onnx.load('models/exports/y26_onnx/yolo26n.onnx'); onnx.checker.check_model(m); print('ONNX OK')"
 
-# 2) Print ORT version
+Confirm ONNXRuntime loads:
+
 uv run python -c "import onnxruntime as ort; print('onnxruntime', ort.__version__)"
-```
 
-> Running full ONNX inference requires knowing the model’s input/output names and preprocessing. For quick sanity checks, the `onnx.checker` validation above is usually sufficient.
 
----
+⸻
 
-## TensorRT / `engine` export and run notes (important)
+TensorRT / engine export and run notes (important)
 
-Exporting `engine` (TensorRT) typically requires:
+Exporting engine (TensorRT) typically requires an NVIDIA GPU + CUDA + TensorRT installed and version-compatible.
 
-- NVIDIA GPU
-- CUDA toolkit compatible with your GPU driver
-- TensorRT installed (often via NVIDIA packages, not pure pip)
-- matching versions across torch / CUDA / TensorRT
+Export TensorRT engine:
 
-### Export TensorRT engine
-
-```bash
 uv run python -m detect.cli.export_model \
   --weights yolo26n \
   --formats engine \
   --device 0 \
   --out-dir models/exports --run-name y26_trt
-```
 
-### Run / sanity-check the exported engine
+Run / sanity-check the exported engine (Ultralytics predict):
 
-The easiest way to sanity-check a `.engine` artifact is to run Ultralytics predict using it:
-
-```bash
-# Example: run the engine on a video
 uv run python -c "from ultralytics import YOLO; m=YOLO('models/exports/y26_trt/yolo26n.engine'); r=m.predict(source='in.mp4', device=0, verbose=False); print('OK', len(r))"
-```
 
-If this fails, it’s usually an environment/toolchain issue, not the repo code.
 
----
+⸻
 
-## Troubleshooting
+CLI argument reference
 
-### 1) `Can't get attribute 'Segment26' ...`
+detect.cli.detect_video
 
-This means **weights are newer than your installed `ultralytics`**. Upgrade:
+Required
+	•	--video <path>: Path to the input video file.
+	•	--detector <name>: Detector type (yolo_bbox, yolo_pose, or yolo_seg).
+	•	--weights <id|path|url>: Registry key, local weights path, or URL to weights.
 
-```bash
-uv add -U ultralytics
-uv sync
-```
+Detection options
+	•	--classes <ids>: Filter to specific class IDs (comma/semicolon-separated), or omit for all.
+	•	--conf-thresh <float>: Confidence threshold for detections (default 0.25).
+	•	--imgsz <int>: Inference image size used by the backend (default 640).
+	•	--device <str>: Device selector (e.g., auto, cpu, mps, 0, 0,1).
+	•	--half: Enable FP16 inference where supported.
 
-### 2) Export wheels missing for your Python
+Artifact saving (opt-in)
+	•	--json: Save detections.json under the run directory.
+	•	--frames: Save extracted frames as images under the run directory.
+	•	--save-video <name.mp4>: Save an annotated video under the run directory.
+	•	--display: Show live visualization window while running (press q to quit).
 
-Some exporter runtimes (e.g. `onnxruntime`) may not ship wheels for older Python versions.
-This project uses **Python 3.11+** to avoid that.
+Output control
+	•	--out-dir <dir>: Output root directory used only if saving artifacts (default out).
+	•	--run-name <name>: Run folder name inside out-dir (auto-derived if omitted).
 
----
+Model registry / downloads
+	•	--models-dir <dir>: Directory where models are stored/downloaded (default models).
+	•	--no-download: Disable automatic download for registry keys/URLs.
 
-## License
+Misc
+	•	--no-progress: Disable progress bar.
+	•	--list-models: Print registry + installed models then exit.
 
-MIT License. See `LICENSE`.
+⸻
+
+detect.cli.export_model
+
+Required
+	•	--weights <id|path|url>: Registry key, local weights path, or URL to weights.
+
+Export options
+	•	--formats <list>: Comma/semicolon-separated export formats (default onnx).
+	•	--imgsz <int|H,W>: Export image size as an int or H,W pair (default 640).
+	•	--device <str>: Export device selector (e.g., cpu, mps, 0).
+	•	--half: Enable FP16 export where supported.
+	•	--int8: Enable INT8 quantization (format/toolchain-dependent).
+	•	--data <yaml>: Dataset YAML for INT8 calibration (when required).
+	•	--fraction <float>: Fraction of dataset used for calibration (default 1.0).
+	•	--dynamic: Enable dynamic shapes where supported.
+	•	--batch <int>: Export batch size (default 1).
+	•	--opset <int>: ONNX opset version (ONNX only).
+	•	--simplify: Simplify the ONNX graph (ONNX only).
+	•	--workspace <int>: TensorRT workspace size in GB (TensorRT only).
+	•	--nms: Add NMS to exported model when supported by format/backend.
+
+Output control
+	•	--out-dir <dir>: Output root directory for exports (default models/exports).
+	•	--run-name <name>: Export run folder name inside out-dir.
+
+Model registry / downloads
+	•	--models-dir <dir>: Directory where models are stored/downloaded (default models).
+	•	--no-download: Disable automatic download for registry keys/URLs.
+
+Misc
+	•	--list-models: Print registry + installed models then exit.
+
+⸻
+
+License
+
+MIT License. See LICENSE.
+
+⸻
