@@ -9,21 +9,66 @@ Current backend:
 
 ---
 
-## Features
+## det-v1 output (returned + optionally saved)
 
-- Detect videos → det-v1 JSON (always returned in-memory; optionally saved)
-- Optional artifacts:
-  - `--json` → save `detections.json`
-  - `--frames` → save extracted frames
-  - `--save-video <name.mp4>` → save annotated video
-- YOLO tasks:
-  - `yolo_bbox` (boxes)
-  - `yolo_pose` (boxes + keypoints)
-  - `yolo_seg` (boxes + polygons)
-- Model registry keys:
-  - pass `--weights yolo26n` / `yolo26n-seg` / `yolo26n-pose` (or a local path / URL)
-- Exports:
-  - export to formats like `onnx`, `engine`, `tflite`, `openvino`, `coreml`, etc (depending on toolchain)
+`detect` always produces a canonical JSON payload in-memory with:
+
+- `schema_version`: always `"det-v1"`
+- `video`: input metadata (path, fps, frame_count, width, height)
+- `detector`: detector settings used for the run (name, weights, classes, conf/imgsz/device/half)
+- `frames`: per-frame detections
+  - bbox detection: `bbox = [x1, y1, x2, y2]`
+  - pose detection: `keypoints = [[x, y, score], ...]`
+  - segmentation: `segments = [[[x, y], ...], ...]` (polygons)
+
+### Minimal schema example
+
+```json
+{
+  "schema_version": "det-v1",
+  "video": {
+    "path": "in.mp4",
+    "fps": 30.0,
+    "frame_count": 120,
+    "width": 1920,
+    "height": 1080
+  },
+  "detector": {
+    "name": "yolo_bbox",
+    "weights": "yolo26n",
+    "classes": null,
+    "conf_thresh": 0.25,
+    "imgsz": 640,
+    "device": "cpu",
+    "half": false
+  },
+  "frames": [
+    {
+      "frame": 0,
+      "file": "000000.jpg",
+      "detections": [
+        {
+          "det_ind": 0,
+          "bbox": [100.0, 50.0, 320.0, 240.0],
+          "score": 0.91,
+          "class_id": 0,
+          "class_name": "person"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Returned vs saved
+
+- **Returned (always):** the full det-v1 payload is available as `DetectResult.payload` (Python) or printed to stdout (CLI).
+- **Saved (opt-in):** nothing is written unless you enable artifacts:
+  - `--json` saves `detections.json`
+  - `--frames` saves frames under `frames/`
+  - `--save-video` saves an annotated video
+
+When no artifacts are enabled, no output directory/run folder is created.
 
 ---
 
