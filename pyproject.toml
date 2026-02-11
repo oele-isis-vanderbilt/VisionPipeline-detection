@@ -8,10 +8,6 @@ version = "0.1.4"
 description = "A modular video object detection toolkit with a clean det-v1 JSON schema, pluggable backends, and optional model export."
 readme = "README.md"
 
-[project.urls]
-Repository = "https://github.com/Surya-Rayala/VideoPipeline-detection.git"
-Issues = "https://github.com/Surya-Rayala/VideoPipeline-detection/issues"
-
 authors = [
     { name = "Surya Chand Rayala", email = "suryachand2k1@gmail.com" }
 ]
@@ -21,6 +17,10 @@ dependencies = [
     "tqdm>=4.67.3",
     "ultralytics>=8.4.14",
 ]
+
+[project.urls]
+Repository = "https://github.com/Surya-Rayala/VideoPipeline-detection.git"
+Issues = "https://github.com/Surya-Rayala/VideoPipeline-detection/issues"
 
 [project.optional-dependencies]
 export = [
