@@ -232,9 +232,9 @@ python run_detect.py
 - `fraction` (`float`): fraction of dataset for calibration (default `1.0`).
 - `dynamic` (`bool`): dynamic shapes where supported.
 - `batch` (`int`): export batch size (default `1`).
-- `opset` (`int | None`): ONNX opset (ONNX only).
-- `simplify` (`bool`): simplify ONNX graph (ONNX only).
-- `workspace` (`int | None`): TensorRT workspace (GB) (TensorRT only).
+- `opset` (`int | None`): ONNX opset.
+- `simplify` (`bool`): simplify ONNX graph.
+- `workspace` (`int | None`): TensorRT workspace (GB).
 - `nms` (`bool`): add NMS where supported.
 - `out_dir` (`str | Path`): output root (default `models/exports`).
 - `run_name` (`str | None`): export run folder name under `out_dir`.
@@ -440,9 +440,9 @@ uv run python -m detect.cli.detect_video \
 - `--fraction <float>`: Fraction of dataset used for calibration (default 1.0).
 - `--dynamic`: Enable dynamic shapes where supported.
 - `--batch <int>`: Export batch size (default 1).
-- `--opset <int>`: ONNX opset version (ONNX only).
-- `--simplify`: Simplify the ONNX graph (ONNX only).
-- `--workspace <int>`: TensorRT workspace size in GB (TensorRT only).
+- `--opset <int>`: ONNX opset version.
+- `--simplify`: Simplify the ONNX graph.
+- `--workspace <int>`: TensorRT workspace size in GB.
 - `--nms`: Add NMS to exported model when supported by format/backend.
 
 **Output control**
